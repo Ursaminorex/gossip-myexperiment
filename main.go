@@ -20,10 +20,19 @@ func main() {
 	colored := make(map[int]int)
 	round := 0
 	//wg.Add(count)
-	cyc = cyclicbarrier.New(round * gossip)
+
+	go func(round *int) {
+		for {
+			maxWaitingNum := *round * gossip
+			if 0 != maxWaitingNum && cyc.GetNumberWaiting() == maxWaitingNum {
+				cyc = cyclicbarrier.New(maxWaitingNum)
+			}
+		}
+	}(&round)
+
 	for i := 0; i < count; i++ {
 		port = startPort + i
-		go gossipListener(port, /* &wg,*/ &round, colored)
+		go gossipListener(port /* &wg,*/, &round, colored)
 	}
 
 	time.Sleep(2 * time.Second)
@@ -34,7 +43,7 @@ func main() {
 	//wg.Wait()
 }
 
-func gossipListener(port int, /*wg *sync.WaitGroup,*/ round *int, colored map[int]int) {
+func gossipListener(port int /*wg *sync.WaitGroup,*/, round *int, colored map[int]int) {
 	//defer wg.Done()
 	ip := net.ParseIP("127.0.0.1")
 	listen, err := net.ListenUDP("udp", &net.UDPAddr{
@@ -45,7 +54,13 @@ func gossipListener(port int, /*wg *sync.WaitGroup,*/ round *int, colored map[in
 		fmt.Println("Listen failed, err: ", err)
 		return
 	}
-	defer listen.Close()
+	defer func(listen *net.UDPConn) {
+		err := listen.Close()
+		if err != nil {
+			panic("❌")
+		}
+	}(listen)
+
 	fmt.Println("[", ip, ":", port, "]", "start listening")
 
 	//var sLastRecData string = ""
@@ -90,7 +105,7 @@ func gossipListener(port int, /*wg *sync.WaitGroup,*/ round *int, colored map[in
 			go func(sendData []byte) {
 				_, err = listen.WriteToUDP(sendData, &net.UDPAddr{
 					IP:   ip,
-					Port: historyNodeList[i + 1],
+					Port: historyNodeList[i+1],
 				}) // 发送数据
 				if err != nil {
 					fmt.Println("Write to udp failed, err: ", err)
