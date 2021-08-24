@@ -1,4 +1,4 @@
-module gossip
+module gossip-myexperiment
 
 go 1.16
 
