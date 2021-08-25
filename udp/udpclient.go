@@ -16,24 +16,31 @@ func main() {
 		return
 	}
 	defer socket.Close()
-	data := make([]byte, 128)
+	//data := make([]byte, 128)
 	var sendData string
-	for {
-		fmt.Print("请输入要发送的内容：")
-		fmt.Scan(&sendData)
-		if sendData == "exit" {
-			break
-		}
-		_, err = socket.Write([]byte(sendData)) // 发送数据
-		if err != nil {
-			fmt.Println("发送数据失败，err: ", err)
-			return
-		}
-		n, remoteAddr, err := socket.ReadFromUDP(data) // 接收数据
-		if err != nil {
-			fmt.Println("接收数据失败, err: ", err)
-			return
-		}
-		fmt.Printf("recv:%v addr:%v count:%v\n", string(data[:n]), remoteAddr, n)
+	sendData = "{\"data\":\"gossip test\", \"round\":0, \"path\":\"30000\"}"
+	_, err = socket.Write([]byte(sendData)) // 发送数据
+	if err != nil {
+		fmt.Println("发送数据失败，err: ", err)
+		return
 	}
+	fmt.Println("sendData: ", sendData)
+	//for {
+	//	fmt.Print("请输入要发送的内容：")
+	//	fmt.Scan(&sendData)
+	//	if sendData == "exit" {
+	//		break
+	//	}
+	//	_, err = socket.Write([]byte(sendData)) // 发送数据
+	//	if err != nil {
+	//		fmt.Println("发送数据失败，err: ", err)
+	//		return
+	//	}
+	//	n, remoteAddr, err := socket.ReadFromUDP(data) // 接收数据
+	//	if err != nil {
+	//		fmt.Println("接收数据失败, err: ", err)
+	//		return
+	//	}
+	//	fmt.Printf("recv:%v addr:%v count:%v\n", string(data[:n]), remoteAddr, n)
+	//}
 }
