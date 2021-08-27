@@ -1,2 +1,2 @@
 # gossip-myexperiment
-my gossip experiement code
+my gossip experiment code
