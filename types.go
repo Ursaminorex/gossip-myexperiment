@@ -13,9 +13,10 @@ type Message struct {
 }
 
 type Config struct {
-	Count        int //节点数量
-	Firstnode    int //起始端口
-	Gossipfactor int //八卦因子
+	Count        int // 节点数量
+	Firstnode    int // 起始端口
+	Gossipfactor int // 八卦因子
+	Chsize       int // 限制单位时间线程运算的数量以缓解cpu
 }
 
 func (c Config) LoadConfig(path string) Config {
@@ -31,11 +32,13 @@ func (c Config) LoadConfig(path string) Config {
 			Count:        10,
 			Firstnode:    30000,
 			Gossipfactor: 1,
+			Chsize:       50,
 		}
 	}
 	return Config{
 		Count:        c.Count,
 		Firstnode:    c.Firstnode,
 		Gossipfactor: c.Gossipfactor,
+		Chsize:       c.Chsize,
 	}
 }

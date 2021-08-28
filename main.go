@@ -24,7 +24,7 @@ func main() {
 	var port int
 	colored := make(map[int]int)
 	round := 0
-	ch := make(chan int, 6)                   //设置缓冲区，限制单位时间线程运算的数量以缓解cpu
+	ch := make(chan int, cfg.Chsize)          //设置缓冲区，限制单位时间线程运算的数量以缓解cpu
 	cyc = cyclicbarrier.New(cfg.Gossipfactor) //初始化屏障，首轮任务数为gossip=3
 	waitCh = make(chan struct{})
 	doneCh = make(chan struct{})
