@@ -33,7 +33,6 @@ func BEBGossiper(port int, round, notGossipSum *int, colored map[int]int, ch cha
 
 	var (
 		p         int  = 1     // 初始概率为1
-		isGossip  bool = true  // 根据概率决定是否传播
 		isColored bool = false // 是否着色
 	)
 	for {
@@ -57,75 +56,77 @@ func BEBGossiper(port int, round, notGossipSum *int, colored map[int]int, ch cha
 			continue
 		}
 
-		lockForUdpNums.Lock()
-		udpNums++
-		roundNums++
-		fmt.Printf("Data=%s, Round=%d, Path=%s, updnums=%d, roundnums=%d\n", msg.Data, msg.Round, msg.Path, udpNums, roundNums)
-		lockForUdpNums.Unlock()
-		if isColored {
-			p *= 2
-			if 0 == (rand.Intn(p)+1)/p {
-				isGossip = false
-				*notGossipSum++
+		go func(msg Message) {
+			var isGossip bool = true // 根据概率决定是否传播
+			mutex.Lock()
+			udpNums++
+			roundNums++
+			fmt.Printf("Data=%s, Round=%d, Path=%s, updnums=%d, roundnums=%d\n", msg.Data, msg.Round, msg.Path, udpNums, roundNums)
+			colored[port]++ //记录节点收到消息的次数
+			if isColored {
+				p *= 2
+				if 0 == (rand.Intn(p)+1)/p {
+					isGossip = false
+					*notGossipSum++
+					fmt.Println("notGossipSum:", *notGossipSum)
+					//printColoredMap(colored)
+				}
 			} else {
-				isGossip = true
+				isColored = true
 			}
-		}
-		isColored = true
+			mutex.Unlock()
+			fmt.Println("reach barrier")
+			_ = cyc.Await(context.Background()) //实现同步时钟模型，等待每轮所有消息均分发完毕才允许进入下一轮传播
+			fmt.Println("cross barrier")
+			//fmt.Println("ready to send to:", historyNodeList[j+1])
+			lockForwaitingNum.Lock()
+			waitingNum++
+			res := cycParties == waitingNum //检查是否当前轮次所有传播任务均完成
+			lockForwaitingNum.Unlock()
 
-		lockForColored.Lock()
-		colored[port]++ //记录节点在最终一致后收到数据的次数
-		lockForColored.Unlock()
-
-		historyNodeList := make([]int, cfg.Gossipfactor) //随机选择待分发的节点
-		var k int = 0
-		for _, value := range rand.Perm(cfg.Count)[:cfg.Gossipfactor+1] {
-			randPort := value + cfg.Firstnode
-			if port != randPort {
-				historyNodeList[k] = randPort
-				k++
+			if res { //开启新的一轮传播，重置屏障
+				*round++
+				cycParties = int(math.Pow(float64(cfg.Gossipfactor), float64(*round))) - *notGossipSum*cfg.Gossipfactor // 计算下一轮次的总传播数
+				cyc.Reset()
+				cyc = cyclicbarrier.New(cycParties)
+				close(waitCh)
+				waitCh = make(chan struct{})
+				waitingNum = 0
+				roundNums = 0
+				*notGossipSum = 0
+				fmt.Printf("cyclicbarrier.New(cycParties:%d), round:%d\n", cycParties, *round)
+			} else { //阻塞等待下一轮屏障刷新
+				select {
+				case <-waitCh:
+					break
+				}
 			}
-			if k == cfg.Gossipfactor {
-				break
-			}
-		}
 
-		if isGossip {
+			if !isGossip {
+				return
+			}
+
+			historyNodeList := make([]int, cfg.Gossipfactor) //随机选择待分发的节点
+			var k int = 0
+			for _, value := range rand.Perm(cfg.Count)[:cfg.Gossipfactor+1] {
+				randPort := value + cfg.Firstnode
+				if port != randPort {
+					historyNodeList[k] = randPort
+					k++
+				}
+				if k == cfg.Gossipfactor {
+					break
+				}
+			}
+
 			for i := 0; i < cfg.Gossipfactor; i++ {
 				go func(j int) {
+					ch <- 1
 					select {
 					case <-doneCh:
 						return
 					default:
 					}
-					_ = cyc.Await(context.Background()) //实现同步时钟模型，等待每轮所有消息均分发完毕才允许进入下一轮传播
-					//fmt.Println("ready to send to:", historyNodeList[j+1])
-					lockForwaitingNum.Lock()
-					waitingNum++
-					res := cycParties == waitingNum //检查是否当前轮次所有传播任务均完成
-					lockForwaitingNum.Unlock()
-					if res { //开启新的一轮传播，重置屏障
-						*round++
-						cycParties = int(math.Pow(float64(cfg.Gossipfactor), float64(*round))) - *notGossipSum*3 // 计算下一轮次的总传播数
-						cyc.Reset()
-						cyc = cyclicbarrier.New(cycParties)
-						close(waitCh)
-						waitCh = make(chan struct{})
-						waitingNum = 0
-						fmt.Printf("cyclicbarrier.New(cycParties:%d), round:%d\n", cycParties, *round)
-					} else { //阻塞等待下一轮屏障刷新
-						select {
-						case <-waitCh:
-							break
-						}
-					}
-					lockForRoundNums.Lock()
-					if 0 != roundNums {
-						roundNums = 0
-					}
-					lockForRoundNums.Unlock()
-
-					ch <- 1
 					udpAddr := net.UDPAddr{
 						IP:   ip,
 						Port: historyNodeList[j],
@@ -136,11 +137,10 @@ func BEBGossiper(port int, round, notGossipSum *int, colored map[int]int, ch cha
 					if err != nil {
 						fmt.Println("Write to udp failed, err: ", err)
 					}
-					time.Sleep(100 * time.Millisecond)
 					<-ch
 				}(i)
 				time.Sleep(10 * time.Millisecond)
 			}
-		}
+		}(msg)
 	}
 }

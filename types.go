@@ -33,7 +33,7 @@ func (c Config) LoadConfig(path string) Config {
 			Count:        10,
 			Firstnode:    30000,
 			Gossipfactor: 1,
-			Chsize:       50,
+			Chsize:       10,
 			Gossip:       0,
 		}
 	}
