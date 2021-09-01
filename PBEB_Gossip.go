@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func BEBGossiper(port int, round, notGossipSum *int, colored map[int]int, ch chan int) {
+func PBEBGossiper(port int, round, notGossipSum *int, colored map[int]int, ch chan int) {
 	ip := net.ParseIP(localhost)
 	listen, err := net.ListenUDP("udp", &net.UDPAddr{
 		IP:   ip,

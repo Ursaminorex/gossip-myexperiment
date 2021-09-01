@@ -6,10 +6,10 @@ import (
 )
 
 type Message struct {
-	Data         string // 消息内容
-	Round        int    // 轮次
-	Path         string // 单源路径
-	HistoryNodes string
+	Data  string // 消息内容
+	Round int    // 轮次
+	Path  string // 单源路径
+	//HistoryNodes string
 }
 
 type Config struct {
@@ -17,7 +17,7 @@ type Config struct {
 	Firstnode    int // 起始端口
 	Gossipfactor int // 八卦因子
 	Chsize       int // 限制单位时间线程运算的数量以缓解cpu
-	Gossip       int // gossip算法类型，0是original gossip，1是BEBG
+	Gossip       int // gossip算法类型，0是original gossip，1是BEBG，3是PBEBG，3是NBEBG
 }
 
 func (c Config) LoadConfig(path string) Config {

@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func BEBGossiper(port int, round, notGossipSum *int, colored map[int]int, ch chan int) {
+func NBEBGossiper(port int, round, notGossipSum *int, colored map[int]int, ch chan int) {
 	ip := net.ParseIP(localhost)
 	listen, err := net.ListenUDP("udp", &net.UDPAddr{
 		IP:   ip,
@@ -33,6 +33,7 @@ func BEBGossiper(port int, round, notGossipSum *int, colored map[int]int, ch cha
 	var (
 		p         int  = 1     // 初始概率为1
 		isColored bool = false // 是否着色
+		isFirst   bool = true  // 是否首次收到消息
 	)
 	for {
 		var data [10 * 1024]byte
@@ -116,6 +117,15 @@ func BEBGossiper(port int, round, notGossipSum *int, colored map[int]int, ch cha
 
 			randNeighborList := make([]int, cfg.Gossipfactor) //随机选择待分发的节点
 			var k int = 0
+			if isFirst { // 首次收到消息的节点将转发给前一个邻居节点以避免边缘节点
+				isFirst = false
+				if port == cfg.Firstnode {
+					randNeighborList[0] = port + cfg.Count - 1
+				} else {
+					randNeighborList[0] = port - 1
+				}
+				k++
+			}
 			for _, value := range rand.Perm(cfg.Count)[:cfg.Gossipfactor+1] {
 				randPort := value + cfg.Firstnode
 				if port != randPort {

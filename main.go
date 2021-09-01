@@ -9,13 +9,12 @@ import (
 )
 
 const localhost = "127.0.0.1"
+const pThreshold = 32 //BEBG中p的概率阈值
 
 var (
 	cfg Config
 	cyc cyclicbarrier.CyclicBarrier //控制轮次的屏障
 	//***********使用channel也可实现互斥同步，channel更加go一些**********************
-	//lockForColored    sync.Mutex //已着色节点map的互斥锁
-	//lockForUdpNums    sync.Mutex //记录udp包总数的互斥锁
 	mutex             sync.Mutex // 递增变量互斥锁
 	lockForwaitingNum sync.Mutex //信号计数的互斥锁
 	//**************************************************************************
@@ -32,8 +31,8 @@ func main() {
 	var port int
 	colored := make(map[int]int)
 	round := 0
-	ch := make(chan int, cfg.Chsize)    //设置缓冲区，限制单位时间线程运算的数量以缓解cpu
-	cycParties = 1                      //cycParties = int(math.Pow(float64(cfg.Gossipfactor), 0))
+	ch := make(chan int, cfg.Chsize) //设置缓冲区，限制单位时间线程运算的数量以缓解cpu
+	cycParties = 1
 	cyc = cyclicbarrier.New(cycParties) //初始化屏障
 	waitCh = make(chan struct{})
 	doneCh = make(chan struct{}) // 由上至下的使子协程退出方法考虑使用context比done channel更好
@@ -44,6 +43,10 @@ func main() {
 		port = cfg.Firstnode + i
 		if 1 == cfg.Gossip {
 			go BEBGossiper(port, &round, &notGossipSum, colored, ch)
+		} else if 2 == cfg.Gossip {
+			go PBEBGossiper(port, &round, &notGossipSum, colored, ch)
+		} else if 3 == cfg.Gossip {
+			go NBEBGossiper(port, &round, &notGossipSum, colored, ch)
 		} else {
 			go originalGossiper(port, &round, colored, ch)
 		}
@@ -67,6 +70,25 @@ func printColoredMap(colored map[int]int) {
 		fmt.Print("|")
 		if 0 == i%rowCount {
 			fmt.Println()
+		}
+	}
+}
+
+func printEdgeNodes(colored map[int]int) {
+	const rowCount = 10
+	for i := 0; i < 9*rowCount; i++ {
+		fmt.Print("-")
+	}
+	fmt.Println()
+	n := 0
+	for k := cfg.Firstnode; k < cfg.Firstnode+cfg.Count; k++ {
+		if 0 == colored[k] {
+			n++
+			fmt.Printf("%d:%-2d", k, colored[k])
+			fmt.Print("|")
+			if 0 == n%rowCount {
+				fmt.Println()
+			}
 		}
 	}
 }

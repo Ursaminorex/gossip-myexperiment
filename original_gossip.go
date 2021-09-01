@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/marusama/cyclicbarrier"
-	"math"
 	"math/rand"
 	"net"
 	"strconv"
@@ -67,7 +66,7 @@ func originalGossiper(port int, round *int, colored map[int]int, ch chan int) {
 			lockForwaitingNum.Unlock()
 			if res { //开启新的一轮传播，重置屏障
 				*round++
-				cycParties = int(math.Pow(float64(cfg.Gossipfactor), float64(*round))) // 计算下一轮次的总传播数
+				cycParties *= cfg.Gossipfactor // 计算下一轮次的总传播数
 				cyc.Reset()
 				cyc = cyclicbarrier.New(cycParties)
 				close(waitCh)
@@ -82,12 +81,12 @@ func originalGossiper(port int, round *int, colored map[int]int, ch chan int) {
 				}
 			}
 
-			historyNodeList := make([]int, cfg.Gossipfactor) //随机选择待分发的节点
+			randNeighborList := make([]int, cfg.Gossipfactor) //随机选择待分发的节点
 			var k int = 0
 			for _, value := range rand.Perm(cfg.Count)[:cfg.Gossipfactor+1] {
 				randPort := value + cfg.Firstnode
 				if port != randPort {
-					historyNodeList[k] = randPort
+					randNeighborList[k] = randPort
 					k++
 				}
 				if k == cfg.Gossipfactor {
@@ -105,7 +104,7 @@ func originalGossiper(port int, round *int, colored map[int]int, ch chan int) {
 					ch <- 1
 					udpAddr := net.UDPAddr{
 						IP:   ip,
-						Port: historyNodeList[j],
+						Port: randNeighborList[j],
 					}
 					pMsg := Message{Data: msg.Data, Round: msg.Round + 1, Path: msg.Path + "->" + strconv.Itoa(udpAddr.Port)}
 					sendData, _ := json.Marshal(&pMsg)
