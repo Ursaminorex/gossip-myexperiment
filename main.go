@@ -15,7 +15,8 @@ var (
 	cfg Config
 	cyc cyclicbarrier.CyclicBarrier //控制轮次的屏障
 	//***********使用channel也可实现互斥同步，channel更加go一些**********************
-	mutex             sync.Mutex // 递增变量互斥锁
+	mutex             sync.Mutex //递增变量互斥锁
+	lockForColored    sync.Mutex //着色map的互斥锁
 	lockForwaitingNum sync.Mutex //信号计数的互斥锁
 	//**************************************************************************
 	waitingNum     int           = 0 //到达屏障的线程个数
@@ -47,6 +48,8 @@ func main() {
 			go PBEBGossiper(port, &round, &notGossipSum, colored, ch)
 		} else if 3 == cfg.Gossip {
 			go NBEBGossiper(port, &round, &notGossipSum, colored, ch)
+		} else if 4 == cfg.Gossip {
+			go originalGossiper2(port, &round, colored, ch)
 		} else {
 			go originalGossiper(port, &round, colored, ch)
 		}

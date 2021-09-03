@@ -1,7 +1,7 @@
 {
-  "count": 10000,
+  "count": 10,
   "gossipfactor": 3,
   "firstnode": 30000,
-  "chsize": 80,
-  "gossip": 2
+  "chsize": 6,
+  "gossip": 4
 }

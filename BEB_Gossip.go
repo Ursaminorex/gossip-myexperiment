@@ -58,9 +58,9 @@ func BEBGossiper(port int, round, notGossipSum *int, colored map[int]int, ch cha
 		go func(msg Message) {
 			var isGossip bool = true // 根据概率决定是否传播
 			mutex.Lock()
+			fmt.Printf("Data=%s, Round=%d, Path=%s, updnums=%d, roundnums=%d\n", msg.Data, msg.Round, msg.Path, udpNums, roundNums)
 			udpNums++
 			roundNums++
-			fmt.Printf("Data=%s, Round=%d, Path=%s, updnums=%d, roundnums=%d\n", msg.Data, msg.Round, msg.Path, udpNums, roundNums)
 			colored[port]++ //记录节点收到消息的次数
 			if isColored {
 				if p < pThreshold {
@@ -99,12 +99,14 @@ func BEBGossiper(port int, round, notGossipSum *int, colored map[int]int, ch cha
 					cyc = cyclicbarrier.New(cycParties)
 				}
 				waitingNum = 0
-				roundNums = 0
+				roundNums = 1
 				*notGossipSum = 0
 				close(waitCh)
 				waitCh = make(chan struct{})
 			} else { //阻塞等待下一轮屏障刷新
 				select {
+				case <-doneCh:
+					return
 				case <-waitCh:
 					break
 				}
@@ -155,7 +157,6 @@ func BEBGossiper(port int, round, notGossipSum *int, colored map[int]int, ch cha
 					time.Sleep(100 * time.Millisecond)
 					<-ch
 				}(i)
-				time.Sleep(10 * time.Millisecond)
 			}
 		}(msg)
 	}

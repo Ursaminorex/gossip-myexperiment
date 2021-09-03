@@ -17,7 +17,7 @@ type Config struct {
 	Firstnode    int // 起始端口
 	Gossipfactor int // 八卦因子
 	Chsize       int // 限制单位时间线程运算的数量以缓解cpu
-	Gossip       int // gossip算法类型，0是original gossip，1是BEBG，3是PBEBG，3是NBEBG
+	Gossip       int // gossip算法类型，0是original gossip，1是BEBG，2是PBEBG，3是NBEBG
 }
 
 func (c Config) LoadConfig(path string) Config {
