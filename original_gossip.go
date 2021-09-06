@@ -188,12 +188,12 @@ func originalGossiper2(port int, round *int, colored map[int]int, ch chan int) {
 				cycParties = len(colored) // 计算下一轮次的总传播数
 				cyc.Reset()
 				cyc = cyclicbarrier.New(cycParties)
+				fmt.Printf("cyclicbarrier.New(cycParties:%d), round:%d\n", cycParties, *round)
 				time.Sleep(100 * time.Millisecond)
 				close(waitCh)
 				waitCh = make(chan struct{})
 				waitingNum = 0
 				roundNums = 0
-				fmt.Printf("cyclicbarrier.New(cycParties:%d), round:%d\n", cycParties, *round)
 			}
 		}()
 
@@ -201,7 +201,7 @@ func originalGossiper2(port int, round *int, colored map[int]int, ch chan int) {
 			isFirst = false
 			firstMsg = msg
 			go func(msg Message) {
-				for {
+				for { //阻塞等待下一轮屏障刷新
 					select {
 					case <-doneCh:
 						return
@@ -246,7 +246,7 @@ func originalGossiper2(port int, round *int, colored map[int]int, ch chan int) {
 					time.Sleep(10 * time.Millisecond)
 					<-ch
 				}
-			}(firstMsg) //阻塞等待下一轮屏障刷新
+			}(firstMsg)
 		}
 	}
 }

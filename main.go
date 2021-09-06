@@ -39,7 +39,8 @@ func main() {
 	doneCh = make(chan struct{}) // 由上至下的使子协程退出方法考虑使用context比done channel更好
 
 	var notGossipSum int = 0
-	//多线程模拟p2p节点
+	notGossipList := make(map[int]int)
+	//go协程模拟p2p节点
 	for i := 0; i < cfg.Count; i++ {
 		port = cfg.Firstnode + i
 		if 1 == cfg.Gossip {
@@ -50,6 +51,8 @@ func main() {
 			go NBEBGossiper(port, &round, &notGossipSum, colored, ch)
 		} else if 4 == cfg.Gossip {
 			go originalGossiper2(port, &round, colored, ch)
+		} else if 5 == cfg.Gossip {
+			go BEBGossiper2(port, &round, notGossipList, colored, ch)
 		} else {
 			go originalGossiper(port, &round, colored, ch)
 		}
