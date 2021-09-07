@@ -18,6 +18,7 @@ var (
 	mutex             sync.Mutex //递增变量互斥锁
 	lockForColored    sync.Mutex //着色map的互斥锁
 	lockForwaitingNum sync.Mutex //信号计数的互斥锁
+	lockForPList      sync.Mutex //传播概率map的互斥锁
 	//**************************************************************************
 	waitingNum     int           = 0 //到达屏障的线程个数
 	udpNums        int           = 0 //udp数据包总量
@@ -39,7 +40,11 @@ func main() {
 	doneCh = make(chan struct{}) // 由上至下的使子协程退出方法考虑使用context比done channel更好
 
 	var notGossipSum int = 0
-	notGossipList := make(map[int]int)
+	pList := make(map[int]int)
+	isGossipList := make(map[int]bool)
+	for i := cfg.Firstnode; i < cfg.Firstnode+cfg.Count; i++ {
+		isGossipList[i] = true
+	}
 	//go协程模拟p2p节点
 	for i := 0; i < cfg.Count; i++ {
 		port = cfg.Firstnode + i
@@ -52,7 +57,7 @@ func main() {
 		} else if 4 == cfg.Gossip {
 			go originalGossiper2(port, &round, colored, ch)
 		} else if 5 == cfg.Gossip {
-			go BEBGossiper2(port, &round, notGossipList, colored, ch)
+			go BEBGossiper2(port, &round, isGossipList, pList, colored, ch)
 		} else {
 			go originalGossiper(port, &round, colored, ch)
 		}
@@ -68,7 +73,11 @@ func main() {
 }
 
 func printColoredMap(colored map[int]int) {
-	rowCount := 10
+	const rowCount = 10
+	for i := 0; i < 9*rowCount; i++ {
+		fmt.Print("-")
+	}
+	fmt.Println()
 	i := 0
 	for k := cfg.Firstnode; k < cfg.Firstnode+cfg.Count; k++ {
 		i++
@@ -78,6 +87,10 @@ func printColoredMap(colored map[int]int) {
 			fmt.Println()
 		}
 	}
+	for i := 0; i < 9*rowCount; i++ {
+		fmt.Print("-")
+	}
+	fmt.Println()
 }
 
 func printEdgeNodes(colored map[int]int) {
@@ -97,4 +110,9 @@ func printEdgeNodes(colored map[int]int) {
 			}
 		}
 	}
+	fmt.Println()
+	for i := 0; i < 9*rowCount; i++ {
+		fmt.Print("-")
+	}
+	fmt.Println()
 }

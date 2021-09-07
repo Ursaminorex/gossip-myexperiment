@@ -162,7 +162,7 @@ func BEBGossiper(port int, round, notGossipSum *int, colored map[int]int, ch cha
 	}
 }
 
-func BEBGossiper2(port int, round *int, notGossipList, colored map[int]int, ch chan int) {
+func BEBGossiper2(port int, round *int, isGossipList map[int]bool, pList, colored map[int]int, ch chan int) {
 	ip := net.ParseIP(localhost)
 	listen, err := net.ListenUDP("udp", &net.UDPAddr{
 		IP:   ip,
@@ -186,7 +186,6 @@ func BEBGossiper2(port int, round *int, notGossipList, colored map[int]int, ch c
 		isColored bool = false // 是否着色
 		isFirst   bool = true  // 是否首次收到消息
 		firstMsg  Message
-		isGossip  bool = true // 根据概率决定是否传播
 	)
 	for {
 		var data [10 * 1024]byte
@@ -217,14 +216,9 @@ func BEBGossiper2(port int, round *int, notGossipList, colored map[int]int, ch c
 			if isColored {
 				if p < pThreshold {
 					p *= 2
-				}
-				if 0 == (rand.Intn(p)+1)/p {
-					isGossip = false
-					notGossipList[port]++
-					fmt.Println("notGossipSum:", len(notGossipList))
-					//printColoredMap(colored)
-				} else {
-					isGossip = true
+					lockForPList.Lock()
+					pList[port] = p
+					lockForPList.Unlock()
 				}
 			} else {
 				isColored = true
@@ -237,10 +231,24 @@ func BEBGossiper2(port int, round *int, notGossipList, colored map[int]int, ch c
 			res := cycParties == waitingNum //检查是否当前轮次所有传播任务均完成
 			lockForwaitingNum.Unlock()
 			if res { //开启新的一轮传播，重置屏障
+				sum := 0
+				for k, v := range pList {
+					if 0 == (rand.Intn(v)+1)/v {
+						isGossipList[k] = false
+						sum++
+					} else {
+						isGossipList[k] = true
+					}
+				}
+				//if *round > 20 {
+				//	fmt.Println("round:",*round)
+				//	printEdgeNodes(colored)
+				//}
 				*round++
-				cycParties = len(colored) - len(notGossipList) // 计算下一轮次的总传播数
-				if cycParties <= 0 {
-					fmt.Printf("cycParties:%d\n", cycParties)
+				cycParties = len(colored) - sum // 计算下一轮次的总传播数
+				//if *round > 25 && cycParties < int(float32(cfg.Count)*0.1) {
+				if cfg.Count-len(colored) < 3 {
+					fmt.Printf("round:%d, cycParties:%d\n", *round, cycParties)
 					printColoredMap(colored)
 					printEdgeNodes(colored)
 				} else {
@@ -250,7 +258,6 @@ func BEBGossiper2(port int, round *int, notGossipList, colored map[int]int, ch c
 					time.Sleep(100 * time.Millisecond)
 					waitingNum = 0
 					roundNums = 0
-					notGossipList = make(map[int]int)
 					close(waitCh)
 					waitCh = make(chan struct{})
 				}
@@ -259,7 +266,7 @@ func BEBGossiper2(port int, round *int, notGossipList, colored map[int]int, ch c
 
 		if isFirst {
 			isFirst = false
-			isGossip = true
+			//isGossip = true
 			firstMsg = msg
 			go func(msg Message) {
 				for { //阻塞等待下一轮屏障刷新
@@ -269,7 +276,9 @@ func BEBGossiper2(port int, round *int, notGossipList, colored map[int]int, ch c
 					case <-waitCh:
 						break
 					}
-					if !isGossip {
+					//fmt.Println("cross waitch:",port)
+					//fmt.Println("isGossipList[",port,"]:", isGossipList[port])
+					if !isGossipList[port] {
 						continue
 					}
 
