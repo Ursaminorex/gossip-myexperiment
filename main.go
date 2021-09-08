@@ -15,10 +15,11 @@ var (
 	cfg Config
 	cyc cyclicbarrier.CyclicBarrier //控制轮次的屏障
 	//***********使用channel也可实现互斥同步，channel更加go一些**********************
-	mutex             sync.Mutex //递增变量互斥锁
-	lockForColored    sync.Mutex //着色map的互斥锁
-	lockForwaitingNum sync.Mutex //信号计数的互斥锁
-	lockForPList      sync.Mutex //传播概率map的互斥锁
+	mutex              sync.Mutex //递增变量互斥锁
+	lockForColored     sync.Mutex //着色map的互斥锁
+	lockForwaitingNum  sync.Mutex //信号计数的互斥锁
+	lockForPList       sync.Mutex //传播概率map的互斥锁
+	lockForChangePList sync.Mutex //传播概率map的互斥锁
 	//**************************************************************************
 	waitingNum     int           = 0 //到达屏障的线程个数
 	udpNums        int           = 0 //udp数据包总量
@@ -41,9 +42,12 @@ func main() {
 
 	var notGossipSum int = 0
 	pList := make(map[int]int)
+	changePList := make(map[int]bool)
 	isGossipList := make(map[int]bool)
 	for i := cfg.Firstnode; i < cfg.Firstnode+cfg.Count; i++ {
-		isGossipList[i] = true
+		pList[i] = 0
+		changePList[i] = false
+		isGossipList[i] = false
 	}
 	//go协程模拟p2p节点
 	for i := 0; i < cfg.Count; i++ {
@@ -57,7 +61,9 @@ func main() {
 		} else if 4 == cfg.Gossip {
 			go originalGossiper2(port, &round, colored, ch)
 		} else if 5 == cfg.Gossip {
-			go BEBGossiper2(port, &round, isGossipList, pList, colored, ch)
+			go BEBGossiper2(port, &round, isGossipList, changePList, pList, colored, ch)
+		} else if 6 == cfg.Gossip {
+			go NBEBGossiper2(port, &round, isGossipList, changePList, pList, colored, ch)
 		} else {
 			go originalGossiper(port, &round, colored, ch)
 		}

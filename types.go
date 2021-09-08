@@ -18,6 +18,7 @@ type Config struct {
 	Gossipfactor int // 八卦因子
 	Chsize       int // 限制单位时间线程运算的数量以缓解cpu
 	Gossip       int // gossip算法类型，0是original gossip，1是BEBG，2是PBEBG，3是NBEBG
+	Minedges     int // 边缘节点数最小值
 }
 
 func (c Config) LoadConfig(path string) Config {
@@ -35,6 +36,7 @@ func (c Config) LoadConfig(path string) Config {
 			Gossipfactor: 1,
 			Chsize:       10,
 			Gossip:       0,
+			Minedges:     3,
 		}
 	}
 	return Config{
@@ -43,5 +45,6 @@ func (c Config) LoadConfig(path string) Config {
 		Gossipfactor: c.Gossipfactor,
 		Chsize:       c.Chsize,
 		Gossip:       c.Gossip,
+		Minedges:     c.Minedges,
 	}
 }
