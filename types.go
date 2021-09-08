@@ -19,6 +19,7 @@ type Config struct {
 	Chsize       int // 限制单位时间线程运算的数量以缓解cpu
 	Gossip       int // gossip算法类型，0是original gossip，1是BEBG，2是PBEBG，3是NBEBG
 	Minedges     int // 边缘节点数最小值
+	Push         int // 推送给前一个邻居的轮次阈值
 }
 
 func (c Config) LoadConfig(path string) Config {
@@ -37,6 +38,7 @@ func (c Config) LoadConfig(path string) Config {
 			Chsize:       10,
 			Gossip:       0,
 			Minedges:     3,
+			Push:         10,
 		}
 	}
 	return Config{
@@ -46,5 +48,6 @@ func (c Config) LoadConfig(path string) Config {
 		Chsize:       c.Chsize,
 		Gossip:       c.Gossip,
 		Minedges:     c.Minedges,
+		Push:         c.Push,
 	}
 }

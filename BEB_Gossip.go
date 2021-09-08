@@ -183,6 +183,7 @@ func BEBGossiper2(port int, round *int, isGossipList, changePList map[int]bool, 
 
 	var (
 		isColored bool = false // 是否着色
+		isFirst   bool = true  // 是否首次收到消息
 		firstMsg  Message
 	)
 	for {
@@ -206,19 +207,14 @@ func BEBGossiper2(port int, round *int, isGossipList, changePList map[int]bool, 
 			continue
 		}
 
-		lockForColored.Lock()
-		colored[port]++ //记录节点收到消息的次数
-		lockForColored.Unlock()
-
-		// 处理接受消息
-		if isColored {
+		if isFirst {
+			isFirst = false
 			lockForChangePList.Lock()
-			changePList[port] = true
-			lockForChangePList.Unlock()
-		} else {
-			isColored = true
 			changePList[port] = false
+			lockForChangePList.Unlock()
+			lockForPList.Lock()
 			pList[port] = 1
+			lockForPList.Unlock()
 			firstMsg = msg
 			// 按周期传播
 			go func(msg Message) {
@@ -278,6 +274,18 @@ func BEBGossiper2(port int, round *int, isGossipList, changePList map[int]bool, 
 
 		// 全局时钟控制
 		go func() {
+			lockForColored.Lock()
+			colored[port]++ //记录节点收到消息的次数
+			lockForColored.Unlock()
+
+			// 处理接受消息
+			if isColored {
+				lockForChangePList.Lock()
+				changePList[port] = true
+				lockForChangePList.Unlock()
+			} else {
+				isColored = true
+			}
 			//fmt.Println("reach barrier", port)
 			_ = cyc.Await(context.Background()) //实现同步时钟模型，等待每轮所有消息均分发完毕才允许进入下一轮传播
 			//fmt.Println("cross barrier", port)

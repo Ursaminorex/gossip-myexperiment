@@ -194,6 +194,7 @@ func NBEBGossiper2(port int, round *int, isGossipList, changePList map[int]bool,
 	var (
 		isColored bool = false // 是否着色
 		isFirst   bool = true  // 是否首次收到消息
+		hasPush   bool = false // 是否已经推送给前一个邻居
 		firstMsg  Message
 	)
 	for {
@@ -217,18 +218,14 @@ func NBEBGossiper2(port int, round *int, isGossipList, changePList map[int]bool,
 			continue
 		}
 
-		lockForColored.Lock()
-		colored[port]++ //记录节点收到消息的次数
-		lockForColored.Unlock()
-
-		if isColored {
+		if isFirst {
+			isFirst = false
 			lockForChangePList.Lock()
-			changePList[port] = true
-			lockForChangePList.Unlock()
-		} else {
-			isColored = true
 			changePList[port] = false
+			lockForChangePList.Unlock()
+			lockForPList.Lock()
 			pList[port] = 1
+			lockForPList.Unlock()
 			firstMsg = msg
 			// 按周期传播
 			go func(msg Message) {
@@ -246,9 +243,9 @@ func NBEBGossiper2(port int, round *int, isGossipList, changePList map[int]bool,
 					}
 
 					ch <- 1
-					var randNeighbor int //随机选择待分发的节点
-					if isFirst {         // 首次收到消息的节点将转发给前一个邻居节点以避免边缘节点
-						isFirst = false
+					var randNeighbor int                //随机选择待分发的节点
+					if !hasPush && *round >= cfg.Push { // 首次收到消息的节点将转发给前一个邻居节点以避免边缘节点
+						hasPush = true
 						if port == cfg.Firstnode {
 							randNeighbor = port + cfg.Count - 1
 						} else {
@@ -297,6 +294,18 @@ func NBEBGossiper2(port int, round *int, isGossipList, changePList map[int]bool,
 
 		// 全局时钟控制
 		go func() {
+			lockForColored.Lock()
+			colored[port]++ //记录节点收到消息的次数
+			lockForColored.Unlock()
+
+			// 处理接受消息
+			if isColored {
+				lockForChangePList.Lock()
+				changePList[port] = true
+				lockForChangePList.Unlock()
+			} else {
+				isColored = true
+			}
 			//fmt.Println("reach barrier", port)
 			_ = cyc.Await(context.Background()) //实现同步时钟模型，等待每轮所有消息均分发完毕才允许进入下一轮传播
 			//fmt.Println("cross barrier", port)

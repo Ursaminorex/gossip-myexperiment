@@ -3,6 +3,7 @@
   "gossipfactor": 3,
   "firstnode": 20000,
   "chsize": 40,
-  "gossip": 5,
-  "minedges": 3
+  "gossip": 6,
+  "minedges": 3,
+  "push": 15
 }
