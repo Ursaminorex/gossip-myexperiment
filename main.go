@@ -15,11 +15,13 @@ var (
 	cfg Config
 	cyc cyclicbarrier.CyclicBarrier //控制轮次的屏障
 	//***********使用channel也可实现互斥同步，channel更加go一些**********************
-	mutex              sync.Mutex //递增变量互斥锁
-	lockForColored     sync.Mutex //着色map的互斥锁
-	lockForwaitingNum  sync.Mutex //信号计数的互斥锁
-	lockForPList       sync.Mutex //传播概率map的互斥锁
-	lockForChangePList sync.Mutex //传播概率map的互斥锁
+	mutex                   sync.Mutex //递增变量互斥锁
+	lockForColored          sync.Mutex //着色map的互斥锁
+	lockForwaitingNum       sync.Mutex //信号计数的互斥锁
+	lockForPList            sync.Mutex //传播概率map的互斥锁
+	lockForChangePList      sync.Mutex //传播概率map的互斥锁
+	lockForHasPushList      sync.Mutex //是否已推送map的互斥锁
+	lockForPullResponseList sync.Mutex //是否回复更新map的互斥锁
 	//**************************************************************************
 	waitingNum     int           = 0 //到达屏障的线程个数
 	udpNums        int           = 0 //udp数据包总量
@@ -38,16 +40,21 @@ func main() {
 	cycParties = 1
 	cyc = cyclicbarrier.New(cycParties) //初始化屏障
 	waitCh = make(chan struct{})
-	doneCh = make(chan struct{}) // 由上至下的使子协程退出方法考虑使用context比done channel更好
+	doneCh = make(chan struct{}) //由上至下的使子协程退出方法考虑使用context比done channel更好
 
 	var notGossipSum int = 0
 	pList := make(map[int]int)
-	changePList := make(map[int]bool)
-	isGossipList := make(map[int]bool)
+	changePList := make(map[int]bool)      //是否要改变概率p
+	isGossipList := make(map[int]bool)     //是否传播
+	hasPushList := make(map[int]bool)      //是否已经推送给前一个邻居过
+	pullResponseList := make(map[int]bool) //是否回复更新消息
+	//初始化maps
 	for i := cfg.Firstnode; i < cfg.Firstnode+cfg.Count; i++ {
 		pList[i] = 0
 		changePList[i] = false
 		isGossipList[i] = false
+		hasPushList[i] = false
+		pullResponseList[i] = false
 	}
 	//go协程模拟p2p节点
 	for i := 0; i < cfg.Count; i++ {
@@ -63,7 +70,9 @@ func main() {
 		} else if 5 == cfg.Gossip {
 			go BEBGossiper2(port, &round, isGossipList, changePList, pList, colored, ch)
 		} else if 6 == cfg.Gossip {
-			go NBEBGossiper2(port, &round, isGossipList, changePList, pList, colored, ch)
+			go PBEBGossiper2(port, &round, isGossipList, changePList, pullResponseList, pList, colored, ch)
+		} else if 7 == cfg.Gossip {
+			go NBEBGossiper2(port, &round, isGossipList, changePList, hasPushList, pList, colored, ch)
 		} else {
 			go originalGossiper(port, &round, colored, ch)
 		}
@@ -76,6 +85,7 @@ func main() {
 
 	//输出着色情况
 	printColoredMap(colored)
+	printRepetitions(colored)
 }
 
 func printColoredMap(colored map[int]int) {
@@ -121,4 +131,14 @@ func printEdgeNodes(colored map[int]int) {
 		fmt.Print("-")
 	}
 	fmt.Println()
+}
+
+func printRepetitions(colored map[int]int) {
+	repeatMsgSum := 0
+	for _, v := range colored {
+		if v > 1 {
+			repeatMsgSum += v - 1
+		}
+	}
+	fmt.Println("Repetitions:", repeatMsgSum)
 }

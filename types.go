@@ -20,6 +20,7 @@ type Config struct {
 	Gossip       int // gossip算法类型，0是original gossip，1是BEBG，2是PBEBG，3是NBEBG
 	Minedges     int // 边缘节点数最小值
 	Push         int // 推送给前一个邻居的轮次阈值
+	Pull         int // 向其他节点发送拉取信息请求的轮次
 }
 
 func (c Config) LoadConfig(path string) Config {
@@ -39,6 +40,7 @@ func (c Config) LoadConfig(path string) Config {
 			Gossip:       0,
 			Minedges:     3,
 			Push:         10,
+			Pull:         20,
 		}
 	}
 	return Config{
@@ -49,5 +51,6 @@ func (c Config) LoadConfig(path string) Config {
 		Gossip:       c.Gossip,
 		Minedges:     c.Minedges,
 		Push:         c.Push,
+		Pull:         c.Pull,
 	}
 }

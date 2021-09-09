@@ -11,6 +11,128 @@ import (
 	"time"
 )
 
+func originalGossiper2(port int, round *int, colored map[int]int, ch chan int) {
+	ip := net.ParseIP(localhost)
+	listen, err := net.ListenUDP("udp", &net.UDPAddr{
+		IP:   ip,
+		Port: port,
+	})
+	if err != nil {
+		fmt.Println("Listen failed, err: ", err)
+		return
+	}
+	defer func(listen *net.UDPConn) {
+		err := listen.Close()
+		if err != nil {
+			panic("❌")
+		}
+	}(listen)
+
+	fmt.Println("[", ip, ":", port, "]", "start listening")
+
+	var isFirst bool = true // 是否首次收到消息
+	var firstMsg Message
+	for {
+		var data [10 * 1024]byte
+		n, _, err := listen.ReadFromUDP(data[:]) // 接收数据
+		select {
+		case <-doneCh:
+			return
+		default:
+		}
+		if err != nil {
+			fmt.Println("read udp failed, err: ", err)
+			continue
+		}
+
+		//fmt.Printf("data:%v addr:%v count:%v\n", string(data[:n]), addr, n)
+		var msg Message
+		err = json.Unmarshal(data[:n], &msg) //反序列化json保存到Message结构体中
+		if err != nil {
+			fmt.Println("err: ", err)
+			continue
+		}
+
+		lockForColored.Lock()
+		colored[port]++ //记录节点收到消息的次数
+		lockForColored.Unlock()
+
+		go func() {
+			//fmt.Println("reach barrier", port)
+			_ = cyc.Await(context.Background()) //实现同步时钟模型，等待每轮所有消息均分发完毕才允许进入下一轮传播
+			//fmt.Println("cross barrier", port)
+			lockForwaitingNum.Lock()
+			waitingNum++
+			res := cycParties == waitingNum //检查是否当前轮次所有传播任务均完成
+			lockForwaitingNum.Unlock()
+			if res { //开启新的一轮传播，重置屏障
+				*round++
+				cycParties = len(colored) // 计算下一轮次的总传播数
+				cyc.Reset()
+				cyc = cyclicbarrier.New(cycParties)
+				fmt.Printf("cyclicbarrier.New(cycParties:%d), round:%d\n", cycParties, *round)
+				time.Sleep(100 * time.Millisecond)
+				close(waitCh)
+				waitCh = make(chan struct{})
+				waitingNum = 0
+				roundNums = 0
+			}
+		}()
+
+		if isFirst {
+			isFirst = false
+			firstMsg = msg
+			go func(msg Message) {
+				for { //阻塞等待下一轮屏障刷新
+					select {
+					case <-doneCh:
+						return
+					case <-waitCh:
+						break
+					}
+					ch <- 1
+					var randNeighbor int //随机选择待分发的节点
+					randNeighborSlice := rand.Perm(cfg.Count)[:2]
+					if randNeighborSlice[0] != port {
+						randNeighbor = cfg.Firstnode + randNeighborSlice[0]
+					} else {
+						randNeighbor = cfg.Firstnode + randNeighborSlice[1]
+					}
+
+					select {
+					case <-doneCh:
+						return
+					default:
+					}
+					udpAddr := net.UDPAddr{
+						IP:   ip,
+						Port: randNeighbor,
+					}
+					pMsg := Message{Data: msg.Data, Round: *round, Path: msg.Path /*strconv.Itoa(port)*/ + "->" + strconv.Itoa(udpAddr.Port)}
+					sendData, _ := json.Marshal(&pMsg)
+					mutex.Lock()
+					udpNums++
+					roundNums++
+					fmt.Printf("Data=%s, Round=%d, Path=%s, updnums=%d, roundnums=%d\n", pMsg.Data, pMsg.Round, pMsg.Path, udpNums, roundNums)
+					mutex.Unlock()
+
+					select {
+					case <-doneCh:
+						return
+					default:
+					}
+					_, err = listen.WriteToUDP(sendData, &udpAddr) // 发送数据
+					if err != nil {
+						fmt.Println("Write to udp failed, err: ", err)
+					}
+					time.Sleep(10 * time.Millisecond)
+					<-ch
+				}
+			}(firstMsg)
+		}
+	}
+}
+
 func originalGossiper(port int, round *int, colored map[int]int, ch chan int) {
 	ip := net.ParseIP(localhost)
 	listen, err := net.ListenUDP("udp", &net.UDPAddr{
@@ -126,127 +248,5 @@ func originalGossiper(port int, round *int, colored map[int]int, ch chan int) {
 			}
 		}(msg)
 
-	}
-}
-
-func originalGossiper2(port int, round *int, colored map[int]int, ch chan int) {
-	ip := net.ParseIP(localhost)
-	listen, err := net.ListenUDP("udp", &net.UDPAddr{
-		IP:   ip,
-		Port: port,
-	})
-	if err != nil {
-		fmt.Println("Listen failed, err: ", err)
-		return
-	}
-	defer func(listen *net.UDPConn) {
-		err := listen.Close()
-		if err != nil {
-			panic("❌")
-		}
-	}(listen)
-
-	fmt.Println("[", ip, ":", port, "]", "start listening")
-
-	var isFirst bool = true // 是否首次收到消息
-	var firstMsg Message
-	for {
-		var data [10 * 1024]byte
-		n, _, err := listen.ReadFromUDP(data[:]) // 接收数据
-		select {
-		case <-doneCh:
-			return
-		default:
-		}
-		if err != nil {
-			fmt.Println("read udp failed, err: ", err)
-			continue
-		}
-
-		//fmt.Printf("data:%v addr:%v count:%v\n", string(data[:n]), addr, n)
-		var msg Message
-		err = json.Unmarshal(data[:n], &msg) //反序列化json保存到Message结构体中
-		if err != nil {
-			fmt.Println("err: ", err)
-			continue
-		}
-
-		lockForColored.Lock()
-		colored[port]++ //记录节点收到消息的次数
-		lockForColored.Unlock()
-
-		go func() {
-			//fmt.Println("reach barrier", port)
-			_ = cyc.Await(context.Background()) //实现同步时钟模型，等待每轮所有消息均分发完毕才允许进入下一轮传播
-			//fmt.Println("cross barrier", port)
-			lockForwaitingNum.Lock()
-			waitingNum++
-			res := cycParties == waitingNum //检查是否当前轮次所有传播任务均完成
-			lockForwaitingNum.Unlock()
-			if res { //开启新的一轮传播，重置屏障
-				*round++
-				cycParties = len(colored) // 计算下一轮次的总传播数
-				cyc.Reset()
-				cyc = cyclicbarrier.New(cycParties)
-				fmt.Printf("cyclicbarrier.New(cycParties:%d), round:%d\n", cycParties, *round)
-				time.Sleep(100 * time.Millisecond)
-				close(waitCh)
-				waitCh = make(chan struct{})
-				waitingNum = 0
-				roundNums = 0
-			}
-		}()
-
-		if isFirst {
-			isFirst = false
-			firstMsg = msg
-			go func(msg Message) {
-				for { //阻塞等待下一轮屏障刷新
-					select {
-					case <-doneCh:
-						return
-					case <-waitCh:
-						break
-					}
-					ch <- 1
-					var randNeighbor int //随机选择待分发的节点
-					randNeighborSlice := rand.Perm(cfg.Count)[:2]
-					if randNeighborSlice[0] != port {
-						randNeighbor = cfg.Firstnode + randNeighborSlice[0]
-					} else {
-						randNeighbor = cfg.Firstnode + randNeighborSlice[1]
-					}
-
-					select {
-					case <-doneCh:
-						return
-					default:
-					}
-					udpAddr := net.UDPAddr{
-						IP:   ip,
-						Port: randNeighbor,
-					}
-					pMsg := Message{Data: msg.Data, Round: *round, Path: msg.Path /*strconv.Itoa(port)*/ + "->" + strconv.Itoa(udpAddr.Port)}
-					sendData, _ := json.Marshal(&pMsg)
-					mutex.Lock()
-					udpNums++
-					roundNums++
-					fmt.Printf("Data=%s, Round=%d, Path=%s, updnums=%d, roundnums=%d\n", pMsg.Data, *round, pMsg.Path, udpNums, roundNums)
-					mutex.Unlock()
-
-					select {
-					case <-doneCh:
-						return
-					default:
-					}
-					_, err = listen.WriteToUDP(sendData, &udpAddr) // 发送数据
-					if err != nil {
-						fmt.Println("Write to udp failed, err: ", err)
-					}
-					time.Sleep(10 * time.Millisecond)
-					<-ch
-				}
-			}(firstMsg)
-		}
 	}
 }
