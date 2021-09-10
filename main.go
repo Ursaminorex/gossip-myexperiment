@@ -1,9 +1,11 @@
 package main
 
 import (
+	"encoding/csv"
 	"fmt"
 	"github.com/marusama/cyclicbarrier"
 	"math/rand"
+	"os"
 	"sync"
 	"time"
 )
@@ -31,6 +33,10 @@ var (
 )
 
 func main() {
+	csvPath := "test.csv"
+	f := initCsv(csvPath)
+	defer f.Close()
+	csvWriter := csv.NewWriter(f) //创建一个新的写入文件流
 	cfg = cfg.LoadConfig("config.json")
 	rand.Seed(time.Now().Unix())
 	var port int
@@ -66,13 +72,13 @@ func main() {
 		} else if 3 == cfg.Gossip {
 			go NBEBGossiper(port, &round, &notGossipSum, colored, ch)
 		} else if 4 == cfg.Gossip {
-			go originalGossiper2(port, &round, colored, ch)
+			go originalGossiper2(port, &round, colored, ch, csvWriter)
 		} else if 5 == cfg.Gossip {
-			go BEBGossiper2(port, &round, isGossipList, changePList, pList, colored, ch)
+			go BEBGossiper2(port, &round, isGossipList, changePList, pList, colored, ch, csvWriter)
 		} else if 6 == cfg.Gossip {
-			go PBEBGossiper2(port, &round, isGossipList, changePList, pullResponseList, pList, colored, ch)
+			go PBEBGossiper2(port, &round, isGossipList, changePList, pullResponseList, pList, colored, ch, csvWriter)
 		} else if 7 == cfg.Gossip {
-			go NBEBGossiper2(port, &round, isGossipList, changePList, hasPushList, pList, colored, ch)
+			go NBEBGossiper2(port, &round, isGossipList, changePList, hasPushList, pList, colored, ch, csvWriter)
 		} else {
 			go originalGossiper(port, &round, colored, ch)
 		}
@@ -86,6 +92,27 @@ func main() {
 	//输出着色情况
 	printColoredMap(colored)
 	printRepetitions(colored)
+}
+
+func initCsv(path string) *os.File {
+	var f *os.File
+	_, err := os.Stat(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			f, err = os.Create(path)
+			if err != nil {
+				panic(err)
+			}
+			f.WriteString("\xEF\xBB\xBF") // 写入UTF-8 BOM,防止中文乱码
+			f.Close()
+		}
+	}
+	f, err = os.OpenFile(path, os.O_WRONLY|os.O_APPEND, os.ModeAppend|os.ModePerm) //OpenFile读取文件，不存在时则创建，使用追加模式
+	if err != nil {
+		panic(err)
+	}
+	f.WriteString("123")
+	return f
 }
 
 func printColoredMap(colored map[int]int) {

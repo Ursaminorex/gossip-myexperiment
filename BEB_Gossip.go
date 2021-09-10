@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"github.com/marusama/cyclicbarrier"
@@ -11,7 +12,7 @@ import (
 	"time"
 )
 
-func BEBGossiper2(port int, round *int, isGossipList, changePList map[int]bool, pList, colored map[int]int, ch chan int) {
+func BEBGossiper2(port int, round *int, isGossipList, changePList map[int]bool, pList, colored map[int]int, ch chan int, csvWriter *csv.Writer) {
 	ip := net.ParseIP(localhost)
 	listen, err := net.ListenUDP("udp", &net.UDPAddr{
 		IP:   ip,
