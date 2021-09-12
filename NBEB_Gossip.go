@@ -161,6 +161,8 @@ func NBEBGossiper2(port int, round *int, isGossipList, changePList, hasPushList 
 			res := cycParties == waitingNum //检查是否当前轮次所有传播任务均完成
 			lockForwaitingNum.Unlock()
 			if res { //开启新的一轮传播，重置屏障
+				csvWriter.Write([]string{strconv.Itoa(*round), strconv.Itoa(udpNums), strconv.Itoa(roundNums)})
+				csvWriter.Flush()
 				*round++
 				sum := 0
 				for k, v := range changePList {

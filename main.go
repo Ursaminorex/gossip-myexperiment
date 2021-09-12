@@ -6,6 +6,7 @@ import (
 	"github.com/marusama/cyclicbarrier"
 	"math/rand"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -33,11 +34,22 @@ var (
 )
 
 func main() {
+	cfg = cfg.LoadConfig("config.json")
 	csvPath := "test.csv"
+	if 4 == cfg.Gossip {
+		csvPath = "GA_" + strconv.Itoa(cfg.Count) + "nodes.csv"
+	} else if 5 == cfg.Gossip {
+		csvPath = "BEB_" + strconv.Itoa(cfg.Count) + "nodes.csv"
+	} else if 6 == cfg.Gossip {
+		csvPath = "PBEB_" + strconv.Itoa(cfg.Count) + "nodes.csv"
+	} else if 7 == cfg.Gossip {
+		csvPath = "NBEB_" + strconv.Itoa(cfg.Count) + "nodes.csv"
+	} else {
+		csvPath = "gossip_" + strconv.Itoa(cfg.Count) + "nodes.csv"
+	}
 	f := initCsv(csvPath)
 	defer f.Close()
 	csvWriter := csv.NewWriter(f) //创建一个新的写入文件流
-	cfg = cfg.LoadConfig("config.json")
 	rand.Seed(time.Now().Unix())
 	var port int
 	colored := make(map[int]int)
@@ -103,7 +115,8 @@ func initCsv(path string) *os.File {
 			if err != nil {
 				panic(err)
 			}
-			f.WriteString("\xEF\xBB\xBF") // 写入UTF-8 BOM,防止中文乱码
+			f.WriteString("\xEF\xBB\xBF")      // 写入UTF-8 BOM,防止中文乱码
+			f.WriteString("周期,网络数据总量,每轮数据量\n") // 写入UTF-8 BOM,防止中文乱码
 			f.Close()
 		}
 	}
@@ -111,7 +124,6 @@ func initCsv(path string) *os.File {
 	if err != nil {
 		panic(err)
 	}
-	f.WriteString("123")
 	return f
 }
 
