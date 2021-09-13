@@ -166,12 +166,12 @@ func BEBGossiper2(port int, round *int, isGossipList, changePList map[int]bool, 
 						}
 					}
 				}
-				csvWriter.Write([]string{strconv.Itoa(*round), strconv.Itoa(udpNums), strconv.Itoa(roundNums)})
+				csvWriter.Write([]string{strconv.Itoa(*round), strconv.Itoa(udpNums), strconv.Itoa(roundNums), strconv.Itoa(len(colored))})
 				csvWriter.Flush()
 				*round++
 				cycParties = len(colored) - sum // 计算下一轮次的总传播数
 				//if cfg.Count-len(colored) < cfg.Minedges || (*round > 25 && cycParties < int(float32(cfg.Count)*0.1)) {
-				if *round >= 23 {
+				if *round >= cfg.Roundmax {
 					fmt.Printf("round:%d, cycParties:%d\n", *round, cycParties)
 					printColoredMap(colored)
 					printEdgeNodes(colored)

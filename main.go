@@ -115,8 +115,8 @@ func initCsv(path string) *os.File {
 			if err != nil {
 				panic(err)
 			}
-			f.WriteString("\xEF\xBB\xBF")      // 写入UTF-8 BOM,防止中文乱码
-			f.WriteString("周期,网络数据总量,每轮数据量\n") // 写入UTF-8 BOM,防止中文乱码
+			f.WriteString("\xEF\xBB\xBF")             // 写入UTF-8 BOM,防止中文乱码
+			f.WriteString("周期,网络数据总量,每轮数据量,已着色节点数\n") // 写入UTF-8 BOM,防止中文乱码
 			f.Close()
 		}
 	}

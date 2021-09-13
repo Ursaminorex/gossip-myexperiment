@@ -1,10 +1,11 @@
 {
-  "count": 1000,
+  "count": 10000,
   "gossipfactor": 3,
   "firstnode": 20000,
   "chsize": 80,
-  "gossip": 4,
+  "gossip": 5,
   "minedges": 3,
   "push": 15,
-  "pull": 15
+  "pull": 15,
+  "roundmax": 99
 }
