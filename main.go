@@ -6,6 +6,7 @@ import (
 	"github.com/marusama/cyclicbarrier"
 	"math/rand"
 	"os"
+	"path"
 	"strconv"
 	"sync"
 	"time"
@@ -35,19 +36,19 @@ var (
 
 func main() {
 	cfg = cfg.LoadConfig("config.json")
-	csvPath := "test.csv"
+	csvName := "test.csv"
 	if 4 == cfg.Gossip {
-		csvPath = "GA_" + strconv.Itoa(cfg.Count) + "nodes.csv"
+		csvName = "GA_" + strconv.Itoa(cfg.Count) + "nodes.csv"
 	} else if 5 == cfg.Gossip {
-		csvPath = "BEB_" + strconv.Itoa(cfg.Count) + "nodes.csv"
+		csvName = "BEB_" + strconv.Itoa(cfg.Count) + "nodes.csv"
 	} else if 6 == cfg.Gossip {
-		csvPath = "PBEB_" + strconv.Itoa(cfg.Count) + "nodes.csv"
+		csvName = "PBEB_" + strconv.Itoa(cfg.Count) + "nodes.csv"
 	} else if 7 == cfg.Gossip {
-		csvPath = "NBEB_" + strconv.Itoa(cfg.Count) + "nodes.csv"
+		csvName = "NBEB_" + strconv.Itoa(cfg.Count) + "nodes.csv"
 	} else {
-		csvPath = "gossip_" + strconv.Itoa(cfg.Count) + "nodes.csv"
+		csvName = "gossip_" + strconv.Itoa(cfg.Count) + "nodes.csv"
 	}
-	f := initCsv(csvPath)
+	f := initCsv(csvName)
 	defer f.Close()
 	csvWriter := csv.NewWriter(f) //创建一个新的写入文件流
 	rand.Seed(time.Now().Unix())
@@ -104,14 +105,27 @@ func main() {
 	//输出着色情况
 	printColoredMap(colored)
 	printRepetitions(colored)
+	csvWriter.Write([]string{strconv.Itoa(round), strconv.Itoa(udpNums), strconv.Itoa(roundNums), strconv.Itoa(len(colored))})
+	csvWriter.Flush()
 }
 
-func initCsv(path string) *os.File {
+func initCsv(filename string) *os.File {
 	var f *os.File
-	_, err := os.Stat(path)
+	csvDir := "csv"
+	_, err := os.Stat(csvDir)
 	if err != nil {
 		if os.IsNotExist(err) {
-			f, err = os.Create(path)
+			err = os.Mkdir(csvDir, os.ModePerm)
+			if err != nil {
+				panic(err)
+			}
+		}
+	}
+	csvPath := path.Join(csvDir, filename)
+	_, err = os.Stat(csvPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			f, err = os.Create(csvPath)
 			if err != nil {
 				panic(err)
 			}
@@ -120,7 +134,7 @@ func initCsv(path string) *os.File {
 			f.Close()
 		}
 	}
-	f, err = os.OpenFile(path, os.O_WRONLY|os.O_APPEND, os.ModeAppend|os.ModePerm) //OpenFile读取文件，不存在时则创建，使用追加模式
+	f, err = os.OpenFile(csvPath, os.O_WRONLY|os.O_APPEND, os.ModeAppend|os.ModePerm) //OpenFile读取文件，不存在时则创建，使用追加模式
 	if err != nil {
 		panic(err)
 	}
