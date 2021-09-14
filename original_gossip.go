@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func originalGossiper2(port int, round *int, colored map[int]int, ch chan int, csvWriter *csv.Writer) {
+func GA(port int, round *int, colored map[int]int, ch chan int, csvWriter *csv.Writer) {
 	ip := net.ParseIP(localhost)
 	listen, err := net.ListenUDP("udp", &net.UDPAddr{
 		IP:   ip,
@@ -134,6 +134,26 @@ func originalGossiper2(port int, round *int, colored map[int]int, ch chan int, c
 			}(firstMsg)
 		}
 	}
+}
+
+func PGA(port int, i *int, list map[int]bool, list2 map[int]bool, list3 map[int]bool, list4 map[int]int, colored map[int]int, ch chan int, writer *csv.Writer) {
+
+}
+
+func NGA(port int, i *int, list map[int]bool, list2 map[int]bool, list3 map[int]bool, list4 map[int]int, colored map[int]int, ch chan int, writer *csv.Writer) {
+
+}
+
+func MGA(port int, i *int, list map[int]bool, list2 map[int]bool, list3 map[int]bool, list4 map[int]int, colored map[int]int, ch chan int, writer *csv.Writer) {
+
+}
+
+func MPGA(port int, i *int, list map[int]bool, list2 map[int]bool, list3 map[int]bool, list4 map[int]int, colored map[int]int, ch chan int, writer *csv.Writer) {
+
+}
+
+func MNGA(port int, i *int, list map[int]bool, list2 map[int]bool, list3 map[int]bool, list4 map[int]int, colored map[int]int, ch chan int, writer *csv.Writer) {
+
 }
 
 func originalGossiper(port int, round *int, colored map[int]int, ch chan int) {

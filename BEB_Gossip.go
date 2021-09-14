@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func BEBGossiper2(port int, round *int, isGossipList, changePList map[int]bool, pList, colored map[int]int, ch chan int, csvWriter *csv.Writer) {
+func BEBG(port int, round *int, isGossipList, changePList map[int]bool, pList, colored map[int]int, ch chan int, csvWriter *csv.Writer) {
 	ip := net.ParseIP(localhost)
 	listen, err := net.ListenUDP("udp", &net.UDPAddr{
 		IP:   ip,
@@ -189,6 +189,10 @@ func BEBGossiper2(port int, round *int, isGossipList, changePList map[int]bool, 
 			}
 		}()
 	}
+}
+
+func MBEBG(port int, i *int, list map[int]bool, list2 map[int]bool, list3 map[int]int, colored map[int]int, ch chan int, writer *csv.Writer) {
+
 }
 
 func BEBGossiper(port int, round, notGossipSum *int, colored map[int]int, ch chan int) {

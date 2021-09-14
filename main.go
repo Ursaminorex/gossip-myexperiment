@@ -37,14 +37,30 @@ var (
 func main() {
 	cfg = cfg.LoadConfig("config.json")
 	csvName := "test.csv"
-	if 4 == cfg.Gossip {
+	if 1 == cfg.Gossip {
 		csvName = "GA_" + strconv.Itoa(cfg.Count) + "nodes.csv"
-	} else if 5 == cfg.Gossip {
+	} else if 2 == cfg.Gossip {
 		csvName = "BEBG_" + strconv.Itoa(cfg.Count) + "nodes.csv"
+	} else if 3 == cfg.Gossip {
+		csvName = "PBEBG_" + strconv.Itoa(cfg.Count) + "_" + strconv.Itoa(cfg.Pull) + "nodes.csv"
+	} else if 4 == cfg.Gossip {
+		csvName = "NBEBG_" + strconv.Itoa(cfg.Count) + "_" + strconv.Itoa(cfg.Push) + "nodes.csv"
+	} else if 5 == cfg.Gossip {
+		csvName = "PGA_" + strconv.Itoa(cfg.Count) + "_" + strconv.Itoa(cfg.Pull) + "nodes.csv"
 	} else if 6 == cfg.Gossip {
-		csvName = "PBEBG_" + strconv.Itoa(cfg.Count) + "nodes.csv"
+		csvName = "NGA_" + strconv.Itoa(cfg.Count) + "_" + strconv.Itoa(cfg.Push) + "nodes.csv"
 	} else if 7 == cfg.Gossip {
-		csvName = "NBEBG_" + strconv.Itoa(cfg.Count) + "nodes.csv"
+		csvName = "MGA_" + strconv.Itoa(cfg.Count) + "nodes.csv"
+	} else if 8 == cfg.Gossip {
+		csvName = "MBEBG_" + strconv.Itoa(cfg.Count) + "nodes.csv"
+	} else if 9 == cfg.Gossip {
+		csvName = "MPBEBG_" + strconv.Itoa(cfg.Count) + "_" + strconv.Itoa(cfg.Pull) + "nodes.csv"
+	} else if 10 == cfg.Gossip {
+		csvName = "MNBEBG_" + strconv.Itoa(cfg.Count) + "_" + strconv.Itoa(cfg.Push) + "nodes.csv"
+	} else if 11 == cfg.Gossip {
+		csvName = "MPGA_" + strconv.Itoa(cfg.Count) + "_" + strconv.Itoa(cfg.Pull) + "nodes.csv"
+	} else if 12 == cfg.Gossip {
+		csvName = "MNGA_" + strconv.Itoa(cfg.Count) + "_" + strconv.Itoa(cfg.Push) + "nodes.csv"
 	} else {
 		csvName = "gossip_" + strconv.Itoa(cfg.Count) + "nodes.csv"
 	}
@@ -79,19 +95,35 @@ func main() {
 	for i := 0; i < cfg.Count; i++ {
 		port = cfg.Firstnode + i
 		if 1 == cfg.Gossip {
-			go BEBGossiper(port, &round, &notGossipSum, colored, ch)
+			go GA(port, &round, colored, ch, csvWriter)
 		} else if 2 == cfg.Gossip {
-			go PBEBGossiper(port, &round, &notGossipSum, colored, ch)
+			go BEBG(port, &round, isGossipList, changePList, pList, colored, ch, csvWriter)
 		} else if 3 == cfg.Gossip {
-			go NBEBGossiper(port, &round, &notGossipSum, colored, ch)
+			go PBEBG(port, &round, isGossipList, changePList, pullResponseList, pList, colored, ch, csvWriter)
 		} else if 4 == cfg.Gossip {
-			go originalGossiper2(port, &round, colored, ch, csvWriter)
+			go NBEBG(port, &round, isGossipList, changePList, hasPushList, pList, colored, ch, csvWriter)
 		} else if 5 == cfg.Gossip {
-			go BEBGossiper2(port, &round, isGossipList, changePList, pList, colored, ch, csvWriter)
+			go PGA(port, &round, isGossipList, changePList, pullResponseList, pList, colored, ch, csvWriter)
 		} else if 6 == cfg.Gossip {
-			go PBEBGossiper2(port, &round, isGossipList, changePList, pullResponseList, pList, colored, ch, csvWriter)
+			go NGA(port, &round, isGossipList, changePList, hasPushList, pList, colored, ch, csvWriter)
 		} else if 7 == cfg.Gossip {
-			go NBEBGossiper2(port, &round, isGossipList, changePList, hasPushList, pList, colored, ch, csvWriter)
+			go MGA(port, &round, isGossipList, changePList, hasPushList, pList, colored, ch, csvWriter)
+		} else if 8 == cfg.Gossip {
+			go MBEBG(port, &round, isGossipList, changePList, pList, colored, ch, csvWriter)
+		} else if 9 == cfg.Gossip {
+			go MPBEBG(port, &round, isGossipList, changePList, pullResponseList, pList, colored, ch, csvWriter)
+		} else if 10 == cfg.Gossip {
+			go MNBEBG(port, &round, isGossipList, changePList, hasPushList, pList, colored, ch, csvWriter)
+		} else if 11 == cfg.Gossip {
+			go MPGA(port, &round, isGossipList, changePList, pullResponseList, pList, colored, ch, csvWriter)
+		} else if 12 == cfg.Gossip {
+			go MNGA(port, &round, isGossipList, changePList, hasPushList, pList, colored, ch, csvWriter)
+		} else if 13 == cfg.Gossip {
+			go BEBGossiper(port, &round, &notGossipSum, colored, ch)
+		} else if 14 == cfg.Gossip {
+			go PBEBGossiper(port, &round, &notGossipSum, colored, ch)
+		} else if 15 == cfg.Gossip {
+			go NBEBGossiper(port, &round, &notGossipSum, colored, ch)
 		} else {
 			go originalGossiper(port, &round, colored, ch)
 		}

@@ -1,13 +1,9 @@
-import numpy as np
-import pandas as pd
-
 import csv
-import json
 import os
 from matplotlib import pyplot as plt
 
 
-def plotcsv(csvName, pcolor='red', plabel='GA'):
+def plotcsv(csvName, pcolor='red', plabel='GA', style='-o'):
     # x = np.linspace(0, 30, 31)
     with open(os.path.join("csv", csvName), 'r', encoding='utf-8') as file:
         # 1.创建阅读器对象
@@ -18,11 +14,22 @@ def plotcsv(csvName, pcolor='red', plabel='GA'):
         #     print(index, column_header)
 
         round, udpnums = [], []
-        for row in reader:
-            round.append(int(row[0]))
-            udpnums.append(float(row[1]) / 10000)
+        endvalue = ""
+        for i in range(1, 30):
+            round.append(i)
+            try:
+                row = next(reader)
+            except StopIteration:
+                pass
+            else:
+                endvalue = float(row[1]) / 10000
+            udpnums.append(endvalue)
 
-    plt.plot(round, udpnums, color=pcolor, label=plabel)
+        # for row in reader:
+        #     round.append(int(row[0]))
+        #     udpnums.append(float(row[1]) / 10000)
+
+    plt.plot(round, udpnums, style, color=pcolor, label=plabel)
 
 
 csv_dict = {'GA': 'GA_10000nodes.csv',
@@ -30,23 +37,25 @@ csv_dict = {'GA': 'GA_10000nodes.csv',
             'PBEBG': 'PBEBG_10000nodes.csv',
             'NBEBG': 'NBEBG_10000nodes.csv'
             }
-colors = ['red', 'blue', 'green', 'gold', 'purple', 'brown']
+colors = ['#D1494E', '#93E0FF', '#F8EA93', '#A06A50', '#BDAC9C', 'brown']
+styles = ['-x', '-v', '-+', '-*', '-p', '-s', '-d', '-o']
 it_colors = iter(colors)
+it_styles = iter(styles)
 
 plt.rcParams['font.sans-serif'] = ['SimHei']
 fig = plt.figure(dpi=128, figsize=(8, 5))
 # fig.autofmt_xdate()
 
 for label, csvname in csv_dict.items():
-    plotcsv(csvname, next(it_colors), label)
+    plotcsv(csvname, next(it_colors), label, next(it_styles))
 
 plt.title('数据增长情况', fontsize=16)
 plt.xlabel('周期T', fontsize=16)
 plt.ylabel('UDP数据包个数(*10^4)', fontsize=16)
 plt.tick_params(axis='both', which='major', labelsize=16)
 plt.legend(loc='best')  # 图列位置，可选best，center等
-plt.xlim(14, 22)  # x轴坐标轴
-plt.ylim((1, 10))  # y轴坐标轴
+plt.xlim(0, 25)  # x轴坐标轴
+plt.ylim(0, 10)  # y轴坐标轴
 plt.show()
 
 # config_file = open('config.json', 'r')
