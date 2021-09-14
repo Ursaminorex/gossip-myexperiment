@@ -40,11 +40,11 @@ func main() {
 	if 4 == cfg.Gossip {
 		csvName = "GA_" + strconv.Itoa(cfg.Count) + "nodes.csv"
 	} else if 5 == cfg.Gossip {
-		csvName = "BEB_" + strconv.Itoa(cfg.Count) + "nodes.csv"
+		csvName = "BEBG_" + strconv.Itoa(cfg.Count) + "nodes.csv"
 	} else if 6 == cfg.Gossip {
-		csvName = "PBEB_" + strconv.Itoa(cfg.Count) + "nodes.csv"
+		csvName = "PBEBG_" + strconv.Itoa(cfg.Count) + "nodes.csv"
 	} else if 7 == cfg.Gossip {
-		csvName = "NBEB_" + strconv.Itoa(cfg.Count) + "nodes.csv"
+		csvName = "NBEBG_" + strconv.Itoa(cfg.Count) + "nodes.csv"
 	} else {
 		csvName = "gossip_" + strconv.Itoa(cfg.Count) + "nodes.csv"
 	}
@@ -129,12 +129,12 @@ func initCsv(filename string) *os.File {
 			if err != nil {
 				panic(err)
 			}
-			f.WriteString("\xEF\xBB\xBF")             // 写入UTF-8 BOM,防止中文乱码
-			f.WriteString("周期,网络数据总量,每轮数据量,已着色节点数\n") // 写入UTF-8 BOM,防止中文乱码
+			f.WriteString("\xEF\xBB\xBF") // 写入UTF-8 BOM,防止中文乱码
+			f.WriteString("周期,网络数据总量,每轮数据量,已着色节点数\n")
 			f.Close()
 		}
 	}
-	f, err = os.OpenFile(csvPath, os.O_WRONLY|os.O_APPEND, os.ModeAppend|os.ModePerm) //OpenFile读取文件，不存在时则创建，使用追加模式
+	f, err = os.OpenFile(csvPath, os.O_WRONLY|os.O_APPEND, os.ModeAppend|os.ModePerm) //OpenFile打开文件，使用追加写入模式
 	if err != nil {
 		panic(err)
 	}
