@@ -29,7 +29,8 @@ def plotcsv(csvName, pcolor='red', plabel='GA', style='-o'):
         #     round.append(int(row[0]))
         #     udpnums.append(float(row[1]) / 10000)
 
-    plt.plot(round, udpnums, style, color=pcolor, label=plabel)
+    # plt.plot(round, udpnums, style, color=pcolor, label=plabel)
+    plt.plot(round, udpnums, label=plabel)
 
 
 csv_dict = {'GA': 'GA_10000nodes.csv',
@@ -42,7 +43,9 @@ styles = ['-x', '-v', '-+', '-*', '-p', '-s', '-d', '-o']
 it_colors = iter(colors)
 it_styles = iter(styles)
 
-plt.rcParams['font.sans-serif'] = ['SimHei']
+plt.style.use(['science', 'grid'])  # , 'no-latex'
+plt.rcParams["font.family"] = "SimHei"
+plt.rcParams['axes.unicode_minus'] = False #用来正常显示负号
 fig = plt.figure(dpi=128, figsize=(8, 5))
 # fig.autofmt_xdate()
 
@@ -51,10 +54,10 @@ for label, csvname in csv_dict.items():
 
 plt.title('数据增长情况', fontsize=16)
 plt.xlabel('周期T', fontsize=16)
-plt.ylabel('UDP数据包个数(*10^4)', fontsize=16)
+plt.ylabel('UDP数据包个数10^4', fontsize=16)
 plt.tick_params(axis='both', which='major', labelsize=16)
 plt.legend(loc='best')  # 图列位置，可选best，center等
-plt.xlim(0, 25)  # x轴坐标轴
+plt.xlim(10, 25)  # x轴坐标轴
 plt.ylim(0, 10)  # y轴坐标轴
 plt.show()
 

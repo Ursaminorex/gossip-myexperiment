@@ -19,13 +19,13 @@ var (
 	cfg Config
 	cyc cyclicbarrier.CyclicBarrier //控制轮次的屏障
 	//***********使用channel也可实现互斥同步，channel更加go一些**********************
-	mutex                   sync.Mutex //递增变量互斥锁
-	lockForColored          sync.Mutex //着色map的互斥锁
-	lockForwaitingNum       sync.Mutex //信号计数的互斥锁
-	lockForPList            sync.Mutex //传播概率map的互斥锁
-	lockForChangePList      sync.Mutex //传播概率map的互斥锁
-	lockForHasPushList      sync.Mutex //是否已推送map的互斥锁
-	lockForPullResponseList sync.Mutex //是否回复更新map的互斥锁
+	mutex               sync.Mutex //递增变量互斥锁
+	lockForColored      sync.Mutex //着色map的互斥锁
+	lockForwaitingNum   sync.Mutex //信号计数的互斥锁
+	lockForPList        sync.Mutex //传播概率map的互斥锁
+	lockForChangePList  sync.Mutex //传播概率map的互斥锁
+	lockForHasPushList  sync.Mutex //是否已推送map的互斥锁
+	lockForPullResponse sync.Mutex //是否回复更新的互斥锁
 	//**************************************************************************
 	waitingNum     int           = 0 //到达屏障的线程个数
 	udpNums        int           = 0 //udp数据包总量
@@ -49,7 +49,7 @@ func main() {
 		csvName = "PGA_" + strconv.Itoa(cfg.Count) + "_" + strconv.Itoa(cfg.Pull) + "nodes.csv"
 	} else if 6 == cfg.Gossip {
 		csvName = "NGA_" + strconv.Itoa(cfg.Count) + "_" + strconv.Itoa(cfg.Push) + "nodes.csv"
-	} else if 7 == cfg.Gossip {
+	} /*else if 7 == cfg.Gossip {
 		csvName = "MGA_" + strconv.Itoa(cfg.Count) + "nodes.csv"
 	} else if 8 == cfg.Gossip {
 		csvName = "MBEBG_" + strconv.Itoa(cfg.Count) + "nodes.csv"
@@ -63,7 +63,7 @@ func main() {
 		csvName = "MNGA_" + strconv.Itoa(cfg.Count) + "_" + strconv.Itoa(cfg.Push) + "nodes.csv"
 	} else {
 		csvName = "gossip_" + strconv.Itoa(cfg.Count) + "nodes.csv"
-	}
+	}*/
 	f := initCsv(csvName)
 	defer f.Close()
 	csvWriter := csv.NewWriter(f) //创建一个新的写入文件流
@@ -77,7 +77,7 @@ func main() {
 	waitCh = make(chan struct{})
 	doneCh = make(chan struct{}) //由上至下的使子协程退出方法考虑使用context比done channel更好
 
-	var notGossipSum int = 0
+	//var notGossipSum int = 0
 	pList := make(map[int]int)
 	changePList := make(map[int]bool)      //是否要改变概率p
 	isGossipList := make(map[int]bool)     //是否传播
@@ -103,11 +103,11 @@ func main() {
 		} else if 4 == cfg.Gossip {
 			go NBEBG(port, &round, isGossipList, changePList, hasPushList, pList, colored, ch, csvWriter)
 		} else if 5 == cfg.Gossip {
-			go PGA(port, &round, isGossipList, changePList, pullResponseList, pList, colored, ch, csvWriter)
+			go PGA(port, &round, colored, ch, csvWriter)
 		} else if 6 == cfg.Gossip {
-			go NGA(port, &round, isGossipList, changePList, hasPushList, pList, colored, ch, csvWriter)
-		} else if 7 == cfg.Gossip {
-			go MGA(port, &round, isGossipList, changePList, hasPushList, pList, colored, ch, csvWriter)
+			go NGA(port, &round, colored, ch, csvWriter)
+		} /*else if 7 == cfg.Gossip {
+			go MGA(port, &round, colored, ch, csvWriter)
 		} else if 8 == cfg.Gossip {
 			go MBEBG(port, &round, isGossipList, changePList, pList, colored, ch, csvWriter)
 		} else if 9 == cfg.Gossip {
@@ -115,9 +115,9 @@ func main() {
 		} else if 10 == cfg.Gossip {
 			go MNBEBG(port, &round, isGossipList, changePList, hasPushList, pList, colored, ch, csvWriter)
 		} else if 11 == cfg.Gossip {
-			go MPGA(port, &round, isGossipList, changePList, pullResponseList, pList, colored, ch, csvWriter)
+			go MPGA(port, &round, colored, ch, csvWriter)
 		} else if 12 == cfg.Gossip {
-			go MNGA(port, &round, isGossipList, changePList, hasPushList, pList, colored, ch, csvWriter)
+			go MNGA(port, &round, colored, ch, csvWriter)
 		} else if 13 == cfg.Gossip {
 			go BEBGossiper(port, &round, &notGossipSum, colored, ch)
 		} else if 14 == cfg.Gossip {
@@ -126,7 +126,7 @@ func main() {
 			go NBEBGossiper(port, &round, &notGossipSum, colored, ch)
 		} else {
 			go originalGossiper(port, &round, colored, ch)
-		}
+		}*/
 	}
 
 	for len(colored) < cfg.Count {
@@ -226,4 +226,18 @@ func printRepetitions(colored map[int]int) {
 		}
 	}
 	fmt.Println("Repetitions:", repeatMsgSum)
+}
+
+func selectRandNeighborWithMemory(historyNodes map[int]int, count int) int {
+	var selectNeighbor int
+	for _, value := range rand.Perm(cfg.Count)[:count+1] {
+		randPort := value + cfg.Firstnode
+		_, ok := historyNodes[randPort]
+		if ok {
+			continue
+		}
+		selectNeighbor = randPort
+		break
+	}
+	return selectNeighbor
 }
