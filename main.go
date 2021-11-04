@@ -49,7 +49,7 @@ func main() {
 		csvName = "PGA_" + strconv.Itoa(cfg.Count) + "_" + strconv.Itoa(cfg.Pull) + "nodes.csv"
 	} else if 6 == cfg.Gossip {
 		csvName = "NGA_" + strconv.Itoa(cfg.Count) + "_" + strconv.Itoa(cfg.Push) + "nodes.csv"
-	} /*else if 7 == cfg.Gossip {
+	} else if 7 == cfg.Gossip {
 		csvName = "MGA_" + strconv.Itoa(cfg.Count) + "nodes.csv"
 	} else if 8 == cfg.Gossip {
 		csvName = "MBEBG_" + strconv.Itoa(cfg.Count) + "nodes.csv"
@@ -57,7 +57,7 @@ func main() {
 		csvName = "MPBEBG_" + strconv.Itoa(cfg.Count) + "_" + strconv.Itoa(cfg.Pull) + "nodes.csv"
 	} else if 10 == cfg.Gossip {
 		csvName = "MNBEBG_" + strconv.Itoa(cfg.Count) + "_" + strconv.Itoa(cfg.Push) + "nodes.csv"
-	} else if 11 == cfg.Gossip {
+	} /*else if 11 == cfg.Gossip {
 		csvName = "MPGA_" + strconv.Itoa(cfg.Count) + "_" + strconv.Itoa(cfg.Pull) + "nodes.csv"
 	} else if 12 == cfg.Gossip {
 		csvName = "MNGA_" + strconv.Itoa(cfg.Count) + "_" + strconv.Itoa(cfg.Push) + "nodes.csv"
@@ -106,7 +106,7 @@ func main() {
 			go PGA(port, &round, colored, ch, csvWriter)
 		} else if 6 == cfg.Gossip {
 			go NGA(port, &round, colored, ch, csvWriter)
-		} /*else if 7 == cfg.Gossip {
+		} else if 7 == cfg.Gossip {
 			go MGA(port, &round, colored, ch, csvWriter)
 		} else if 8 == cfg.Gossip {
 			go MBEBG(port, &round, isGossipList, changePList, pList, colored, ch, csvWriter)
@@ -114,7 +114,7 @@ func main() {
 			go MPBEBG(port, &round, isGossipList, changePList, pullResponseList, pList, colored, ch, csvWriter)
 		} else if 10 == cfg.Gossip {
 			go MNBEBG(port, &round, isGossipList, changePList, hasPushList, pList, colored, ch, csvWriter)
-		} else if 11 == cfg.Gossip {
+		} /*else if 11 == cfg.Gossip {
 			go MPGA(port, &round, colored, ch, csvWriter)
 		} else if 12 == cfg.Gossip {
 			go MNGA(port, &round, colored, ch, csvWriter)

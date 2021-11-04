@@ -6,10 +6,10 @@ import (
 )
 
 type Message struct {
-	Data  string // 消息内容
-	Round int    // 轮次
-	Path  string // 单源路径
-	//HistoryNodes map[int]int // 历史节点列表
+	Data         string      // 消息内容
+	Round        int         // 轮次
+	Path         string      // 单源路径
+	HistoryNodes map[int]int // 历史节点列表
 }
 
 type Config struct {

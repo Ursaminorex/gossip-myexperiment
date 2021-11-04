@@ -260,11 +260,11 @@ func PBEBG(port int, round *int, isGossipList, changePList, pullResponseList map
 	}
 }
 
-//func MPBEBG(port int, i *int, list map[int]bool, list2 map[int]bool, list3 map[int]bool, list4 map[int]int, colored map[int]int, ch chan int, writer *csv.Writer) {
-//
-//}
-//
-//// PBEBGossiper 未实现
+func MPBEBG(port int, i *int, list map[int]bool, list2 map[int]bool, list3 map[int]bool, list4 map[int]int, colored map[int]int, ch chan int, writer *csv.Writer) {
+
+}
+
+// PBEBGossiper 未实现
 //func PBEBGossiper(port int, round, notGossipSum *int, colored map[int]int, ch chan int) {
 //	ip := net.ParseIP(localhost)
 //	listen, err := net.ListenUDP("udp", &net.UDPAddr{

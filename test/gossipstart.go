@@ -38,8 +38,8 @@ func main() {
 	defer socket.Close()
 	//data := make([]byte, 128)
 	var sendData string
-	sendData = "{\"data\":\"gossip test\", \"round\":0, \"path\":\"" + strconv.Itoa(port.Firstnode) + "\"}"
-	//sendData = "{\"data\":\"gossip test\", \"round\":0, \"path\":\"" + strconv.Itoa(port.Firstnode) + "\", \"historyNodes\":{\"" + strconv.Itoa(port.Firstnode) + "\":1}}"
+	//sendData = "{\"data\":\"gossip test\", \"round\":0, \"path\":\"" + strconv.Itoa(port.Firstnode) + "\"}"
+	sendData = "{\"data\":\"gossip test\", \"round\":0, \"path\":\"" + strconv.Itoa(port.Firstnode) + "\", \"historyNodes\":{\"" + strconv.Itoa(port.Firstnode) + "\":1}}"
 	_, err = socket.Write([]byte(sendData)) // 发送数据
 	if err != nil {
 		fmt.Println("发送数据失败，err: ", err)
