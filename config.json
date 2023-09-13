@@ -1,9 +1,9 @@
 {
-  "count": 10000,
+  "count": 100,
   "gossipfactor": 3,
-  "firstnode": 10000,
+  "firstnode": 35000,
   "chsize": 40,
-  "gossip": 8,
+  "gossip": 11,
   "minedges": 3,
   "push": 15,
   "pull": 15,

@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -26,6 +27,7 @@ var (
 	lockForChangePList  sync.Mutex //传播概率map的互斥锁
 	lockForHasPushList  sync.Mutex //是否已推送map的互斥锁
 	lockForPullResponse sync.Mutex //是否回复更新的互斥锁
+	lockForFanout       sync.Mutex //因子衰减互斥锁
 	//**************************************************************************
 	waitingNum     int           = 0 //到达屏障的线程个数
 	udpNums        int           = 0 //udp数据包总量
@@ -57,14 +59,27 @@ func main() {
 		csvName = "MPBEBG_" + strconv.Itoa(cfg.Count) + "_" + strconv.Itoa(cfg.Pull) + "nodes.csv"
 	} else if 10 == cfg.Gossip {
 		csvName = "MNBEBG_" + strconv.Itoa(cfg.Count) + "_" + strconv.Itoa(cfg.Push) + "nodes.csv"
-	} /*else if 11 == cfg.Gossip {
-		csvName = "MPGA_" + strconv.Itoa(cfg.Count) + "_" + strconv.Itoa(cfg.Pull) + "nodes.csv"
+		//} else if 11 == cfg.Gossip {
+		//	csvName = "MPGA_" + strconv.Itoa(cfg.Count) + "_" + strconv.Itoa(cfg.Pull) + "nodes.csv"
+		//} else if 12 == cfg.Gossip {
+		//	csvName = "MNGA_" + strconv.Itoa(cfg.Count) + "_" + strconv.Itoa(cfg.Push) + "nodes.csv"
+	} else if 11 == cfg.Gossip {
+		csvName = "originalGossiper_" + strconv.Itoa(cfg.Gossipfactor) + "fout_" + strconv.Itoa(cfg.Count) + "nodes.csv"
 	} else if 12 == cfg.Gossip {
-		csvName = "MNGA_" + strconv.Itoa(cfg.Count) + "_" + strconv.Itoa(cfg.Push) + "nodes.csv"
+		csvName = "NHDG_" + strconv.Itoa(cfg.Gossipfactor) + "fout_" + strconv.Itoa(cfg.Count) + "nodes.csv"
+	} else if 13 == cfg.Gossip {
+		csvName = "BEBGossiper_" + strconv.Itoa(cfg.Gossipfactor) + "fout_" + strconv.Itoa(cfg.Count) + "nodes.csv"
+	} else if 21 == cfg.Gossip {
+		csvName = "asyngossip_" + strconv.Itoa(cfg.Gossipfactor) + "fout_" + strconv.Itoa(cfg.Count) + "nodes.csv"
+	} else if 22 == cfg.Gossip {
+		csvName = "asynNHDG_" + strconv.Itoa(cfg.Gossipfactor) + "fout_" + strconv.Itoa(cfg.Count) + "nodes.csv"
+	}
+	var f *os.File
+	if cfg.Gossip >= 20 {
+		f = initAsynCsv(csvName)
 	} else {
-		csvName = "gossip_" + strconv.Itoa(cfg.Count) + "nodes.csv"
-	}*/
-	f := initCsv(csvName)
+		f = initSynCsv(csvName)
+	}
 	defer f.Close()
 	csvWriter := csv.NewWriter(f) //创建一个新的写入文件流
 	rand.Seed(time.Now().Unix())
@@ -77,8 +92,9 @@ func main() {
 	waitCh = make(chan struct{})
 	doneCh = make(chan struct{}) //由上至下的使子协程退出方法考虑使用context比done channel更好
 
-	//var notGossipSum int = 0
+	var notGossipSum int = 0
 	pList := make(map[int]int)
+	fanoutList := make(map[int]int)        //fanout列表
 	changePList := make(map[int]bool)      //是否要改变概率p
 	isGossipList := make(map[int]bool)     //是否传播
 	hasPushList := make(map[int]bool)      //是否已经推送给前一个邻居过
@@ -114,34 +130,134 @@ func main() {
 			go MPBEBG(port, &round, isGossipList, changePList, pullResponseList, pList, colored, ch, csvWriter)
 		} else if 10 == cfg.Gossip {
 			go MNBEBG(port, &round, isGossipList, changePList, hasPushList, pList, colored, ch, csvWriter)
-		} /*else if 11 == cfg.Gossip {
-			go MPGA(port, &round, colored, ch, csvWriter)
+			//} else if 11 == cfg.Gossip {
+			//	go MPGA(port, &round, colored, ch, csvWriter)
+			//} else if 12 == cfg.Gossip {
+			//	go MNGA(port, &round, colored, ch, csvWriter)
+			//} else if 13 == cfg.Gossip {
+			//	go BEBGossiper(port, &round, &notGossipSum, colored, ch)
+			//} else if 14 == cfg.Gossip {
+			//	go PBEBGossiper(port, &round, &notGossipSum, colored, ch)
+			//} else if 15 == cfg.Gossip {
+			//	go NBEBGossiper(port, &round, &notGossipSum, colored, ch)
+		} else if 11 == cfg.Gossip {
+			go originalGossiper(port, &round, colored, ch, csvWriter)
 		} else if 12 == cfg.Gossip {
-			go MNGA(port, &round, colored, ch, csvWriter)
+			go NHDG(port, &round, fanoutList, colored, ch, csvWriter)
 		} else if 13 == cfg.Gossip {
-			go BEBGossiper(port, &round, &notGossipSum, colored, ch)
-		} else if 14 == cfg.Gossip {
-			go PBEBGossiper(port, &round, &notGossipSum, colored, ch)
-		} else if 15 == cfg.Gossip {
-			go NBEBGossiper(port, &round, &notGossipSum, colored, ch)
-		} else {
-			go originalGossiper(port, &round, colored, ch)
-		}*/
+			go BEBGossiper(port, &round, &notGossipSum, colored, ch, csvWriter)
+		} else if 21 == cfg.Gossip {
+			go asynOriginalGossiper(port, colored, ch)
+		} else if 22 == cfg.Gossip {
+			go asynNHDG(port, colored, ch)
+		}
 	}
 
-	for len(colored) < cfg.Count {
-	} //所有节点均着色后立即中断传播
-	close(doneCh) //发送子协程退出信号
-	time.Sleep(100 * time.Millisecond)
+	var elapsed = time.Nanosecond
+	if cfg.Gossip > 20 {
+		go func() {
+			<-waitCh
+			tick := time.NewTicker(1 * time.Second)
+			t := time.Now()
+			n := 1
+			for {
+				select {
+				case <-doneCh:
+					tick.Stop()
+					elapsed = time.Since(t)
+					return
+				case <-tick.C:
+					//耗时,网络数据总量,已着色节点数，冗余消息数,覆盖率
+					row := fmt.Sprintf("%d,%d,%d,%.4f,%.4f", n, udpNums, len(colored), float32(udpNums-len(colored))/float32(cfg.Count), float32(len(colored))/float32(cfg.Count))
+					csvWriter.Write(strings.Split(row, ","))
+					csvWriter.Flush()
+					n += 1
+				}
+			}
+		}()
+	} else {
+		go func() {
+			for {
+				select {
+				case <-doneCh:
+					return
+				default:
+					if float32(len(colored))/float32(cfg.Count) >= 0.9 {
+						row := fmt.Sprintf("%d,%d,%d,%d,%.4f,%.4f", round, udpNums-1, roundNums-1, len(colored), float32(udpNums-len(colored))/float32(cfg.Count), float32(len(colored))/float32(cfg.Count))
+						csvWriter.Write(strings.Split(row, ","))
+						csvWriter.Flush()
+						return
+					}
+				}
+			}
+		}()
+	}
 
-	//输出着色情况
-	printColoredMap(colored)
-	printRepetitions(colored)
-	csvWriter.Write([]string{strconv.Itoa(round), strconv.Itoa(udpNums), strconv.Itoa(roundNums), strconv.Itoa(len(colored))})
-	csvWriter.Flush()
+	<-doneCh
+	//for len(colored) < cfg.Count {
+	//} //所有节点均着色后立即中断传播
+	////输出着色情况
+	//close(doneCh) //发送子协程退出信号
+	//printColoredMap(colored)
+	//printRepetitions(colored)
+	//time.Sleep(100 * time.Millisecond)
+
+	//if cfg.Gossip > 20 {
+	//	fmt.Println("总耗时： ", elapsed)
+	//}
+	//if cfg.Gossip < 20 {
+	//	row := fmt.Sprintf("%d,%d,%d,%d,%.4f,%.4f", round, udpNums, roundNums, len(colored), float32(udpNums-len(colored))/float32(cfg.Count), float32(len(colored))/float32(cfg.Count))
+	//	csvWriter.Write(strings.Split(row, ","))
+	//	csvWriter.Flush()
+	//} else {
+	//	row := fmt.Sprintf("%dms,%d,%d,%.4f,%.4f", elapsed.Milliseconds(), udpNums, len(colored), float32(udpNums-len(colored))/float32(cfg.Count), float32(len(colored))/float32(cfg.Count))
+	//	csvWriter.Write(strings.Split(row, ","))
+	//	csvWriter.Flush()
+	//}
 }
 
-func initCsv(filename string) *os.File {
+func initSynCsv(filename string) *os.File {
+	var f *os.File
+	csvDir := "csv"
+
+	if 100 == cfg.Count {
+		csvDir += "/100nodes"
+	} else if 1000 == cfg.Count {
+		csvDir += "/1000nodes"
+	} else if 10000 == cfg.Count {
+		csvDir += "/10000nodes"
+	}
+
+	_, err := os.Stat(csvDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			err = os.Mkdir(csvDir, os.ModePerm)
+			if err != nil {
+				panic(err)
+			}
+		}
+	}
+	csvPath := path.Join(csvDir, filename)
+	_, err = os.Stat(csvPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			f, err = os.Create(csvPath)
+			if err != nil {
+				panic(err)
+			}
+			f.WriteString("\xEF\xBB\xBF") // 写入UTF-8 BOM,防止中文乱码
+			f.WriteString("周期,网络数据总量,每轮数据量,已着色节点数,冗余消息数,覆盖率\n")
+			f.Close()
+		}
+	}
+	f, err = os.OpenFile(csvPath, os.O_WRONLY|os.O_APPEND, os.ModeAppend|os.ModePerm) //OpenFile打开文件，使用追加写入模式
+	if err != nil {
+		panic(err)
+	}
+	return f
+}
+
+func initAsynCsv(filename string) *os.File {
 	var f *os.File
 	csvDir := "csv"
 	_, err := os.Stat(csvDir)
@@ -162,7 +278,7 @@ func initCsv(filename string) *os.File {
 				panic(err)
 			}
 			f.WriteString("\xEF\xBB\xBF") // 写入UTF-8 BOM,防止中文乱码
-			f.WriteString("周期,网络数据总量,每轮数据量,已着色节点数\n")
+			f.WriteString("耗时(秒),网络数据总量,已着色节点数,冗余消息数,覆盖率\n")
 			f.Close()
 		}
 	}
